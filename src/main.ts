@@ -1,3 +1,3 @@
-import * as types from "./types"
+import * as ast from "./ast"
 
-console.log((new types.Number(0)).equals(new types.Number(0)));
+console.log((new ast.Number(0)).equals(new ast.Number(0)));
