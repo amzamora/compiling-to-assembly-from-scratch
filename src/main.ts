@@ -12,5 +12,5 @@ let pair =
     regexp(/[0-9]+/y).bind((first) =>
         regexp(/,/y).and(
             regexp(/[0-9]+/y).map((second) => [first, second])));
-            
+
 console.log(pair.parse(new Source("12,34", 0)))
