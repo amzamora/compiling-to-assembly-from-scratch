@@ -75,4 +75,12 @@ export class Parser<T> {
             }
         })
     }
+
+    and<U>(parser: Parser<U>): Parser<U> {
+        return this.bind((_) => parser)
+    }
+
+    map<U>(callback: (t: T) => U): Parser<U> {
+        return this.bind((value) => Parser.constant(callback(value)))
+    }
 }
