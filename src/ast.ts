@@ -154,7 +154,7 @@ export class Block implements AST {
     constructor(public statements: Array<AST>) {}
 
     equals(other: AST) {
-        return other instanceof Block && other.statements.every((stmt, i) => stmt.equals(this.statements[i]));
+        return other instanceof Block && other.statements.every((stmt, i) => stmt.equals(this.statements[i]))
     }
 
     emit() {
@@ -224,5 +224,25 @@ export class While implements AST {
 
     emit() {
         throw Error("Not implemented yet")
+    }
+}
+
+export class Main implements AST {
+    constructor(public statements: Array<AST>) {}
+
+    emit() {}
+
+    equals(other: AST) {
+        return other instanceof Main && other.statements.every((stmt, i) => stmt.equals(this.statements[i]))
+    }
+}
+
+export class Assert implements AST {
+    constructor(public condition: AST) {}
+
+    emit() {}
+
+    equals(other: AST) {
+        return other instanceof Assert && other.condition.equals(this.condition)
     }
 }

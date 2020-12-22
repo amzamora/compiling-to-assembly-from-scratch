@@ -156,7 +156,10 @@ export const call: Parser<ast.AST> =
     ID.bind((callee) =>
         LEFT_PAREN.and(args.bind((args) =>
             RIGHT_PAREN.and(
-                constant(new ast.Call(callee, args))))));
+                constant(
+                    callee === 'assert'
+                    ? new ast.Assert(args[0])
+                    : new ast.Call(callee, args))))))
 
 // atom <- call / ID / NUMBER / LEFT_PAREN expression RIGHT_PAREN
 export const atom: Parser<ast.AST> =
@@ -249,7 +252,10 @@ export const functionStatement: Parser<ast.AST> =
     FUNCTION.and(ID).bind((name) =>
         LEFT_PAREN.and(parameters).bind((parameters) =>
             RIGHT_PAREN.and(blockStatement).bind((block) =>
-                constant(new ast.Function(name, parameters, block)))))
+                constant(
+                    name === 'main'
+                        ? new ast.Main((block as ast.Block).statements)
+                        : new ast.Function(name, parameters, block)))))
 
 // statement <- returnStatement
 // / ifStatement
