@@ -134,6 +134,7 @@ export const ID = token(/[a-zA-Z_][a-zA-Z0-9_]*/y)
 export const id = ID.map((x) => new ast.Id(x))
 export const NOT = token(/!/y).map((_) => ast.Not)
 export const EQUAL = token(/==/y).map((_) => ast.Equal)
+export const ASSIGN = EQUAL
 export const NOT_EQUAL = token(/!=/y).map((_) => ast.NotEqual)
 export const PLUS = token(/[+]/y).map((_) => ast.Add)
 export const MINUS = token(/[-]/y).map((_) => ast.Subtract)
@@ -162,3 +163,113 @@ export const atom: Parser<ast.AST> =
     call.or(id).or(NUMBER).or(
         LEFT_PAREN.and(expression).bind((e) =>
             RIGHT_PAREN.and(constant(e))))
+
+// unary <- NOT? atom
+export const unary: Parser<ast.AST> =
+    maybe(NOT).bind((not) =>
+        atom.map((term) =>
+            not ? new ast.Not(term) : term))
+
+export const infix = (operatorParser, termParser) =>
+    termParser.bind((term) =>
+        zeroOrMore(operatorParser.bind((operator) =>
+            termParser.bind((term) =>
+                constant({operator, term})))).map((operatorTerms) =>
+                    operatorTerms.reduce((left, {operator, term}) =>
+                        new operator(left, term), term)))
+
+// product <- unary ((STAR / SLASH) unary)*
+export const product: Parser<ast.AST> = infix(STAR.or(SLASH), unary)
+
+// sum <- unary ((STAR / SLASH) product)*
+export const sum: Parser<ast.AST> = infix(STAR.or(SLASH), product)
+
+// comparison <- sum ((EQUAL / NOT_EQUAL) sum)*
+export const comparison = infix(EQUAL.or(NOT_EQUAL), sum)
+
+// expression <- comparison
+expression.parse = comparison.parse
+
+// Statements
+export const statement: Parser<ast.AST> = Parser.error("statement parser used before definition")
+
+// returnStatement <- RETURN expression SEMICOLON
+export const returnStatement: Parser<ast.AST> =
+    RETURN.and(expression).bind((term) =>
+        SEMICOLON.and(constant(new ast.Return(term))))
+
+// expressionStatement <- expression SEMICOLON
+export const expressionStatement: Parser<ast.AST> =
+    expression.bind((term) =>
+        SEMICOLON.and(constant(term)))
+
+// ifStatement <-
+// IF LEFT_PAREN expression RIGHT_PAREN statement ELSE statement
+export const ifStatement: Parser<ast.AST> =
+    IF.and(LEFT_PAREN).and(expression).bind((conditional) =>
+        RIGHT_PAREN.and(statement).bind((consequence) =>
+            ELSE.and(statement).bind((alternative) =>
+                constant(new ast.If(conditional, consequence, alternative)))))
+
+// whileStatement <-
+// WHILE LEFT_PAREN expression RIGHT_PAREN statement
+export const whileStatement: Parser<ast.AST> =
+    WHILE.and(LEFT_PAREN).and(expression).bind((conditional) =>
+        RIGHT_PAREN.and(statement).bind((body) =>
+            constant(new ast.While(conditional, body))))
+
+// varStatement <-
+// VAR ID ASSIGN expression SEMICOLON
+export const varStatement: Parser<ast.AST> =
+    VAR.and(ID).bind((name) =>
+        ASSIGN.and(expression).bind((value) =>
+            SEMICOLON.and(constant(new ast.Var(name, value)))))
+
+// assignmentStatement <- ID ASSIGN EXPRESSION SEMICOLON
+export const assignmentStatement: Parser<ast.AST> =
+    ID.bind((name) =>
+        ASSIGN.and(expression).bind((value) =>
+            SEMICOLON.and(constant(new ast.Assign(name, value)))))
+
+// blockStatement <- LEFT_BRACE statement* RIGHT_BRACE
+export const blockStatement: Parser<ast.AST> =
+    LEFT_BRACE.and(zeroOrMore(statement)).bind((statements) =>
+        RIGHT_BRACE.and(constant(new ast.Block(statements))))
+
+// parameters <- (ID (COMMA ID)*)?
+export const parameters: Parser<Array<string>> =
+    ID.bind((param) =>
+        zeroOrMore(COMMA.and(ID)).bind((params) =>
+            constant([param, ...params]))).or(constant([]))
+
+// functionStatement <-
+// FUNCTION ID LEFT_PAREN parameters RIGHT_PAREN
+// blockStatement
+export const functionStatement: Parser<ast.AST> =
+    FUNCTION.and(ID).bind((name) =>
+        LEFT_PAREN.and(parameters).bind((parameters) =>
+            RIGHT_PAREN.and(blockStatement).bind((block) =>
+                constant(new ast.Function(name, parameters, block)))))
+
+// statement <- returnStatement
+// / ifStatement
+// / whileStatement
+// / varStatement
+// / assignmentStatement
+// / blockStatement
+// / functionStatement
+// / expressionStatement
+let statementParser: Parser<ast.AST> =
+    returnStatement
+    .or(functionStatement)
+    .or(ifStatement)
+    .or(whileStatement)
+    .or(varStatement)
+    .or(assignmentStatement)
+    .or(blockStatement)
+    .or(expressionStatement)
+
+statement.parse = statementParser.parse
+
+export const parser: Parser<ast.AST> =
+    ignored.and(zeroOrMore(statement)).map((statements) => new ast.Block(statements))
