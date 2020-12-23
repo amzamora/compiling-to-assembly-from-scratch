@@ -1,16 +1,13 @@
 import * as Parser from "./parser"
+import * as ast from "./ast"
 
 let Source = Parser.Source
+let parser = Parser.parser
 let {regexp, constant, error} = Parser.Parser
-
-let source = new Source("hello1 bye2", 0);
-let result = regexp(/hello[0-9]/y).parse(source);
-console.log(result);
+let {comparison} = Parser
 
 
-let pair =
-    regexp(/[0-9]+/y).bind((first) =>
-        regexp(/,/y).and(
-            regexp(/[0-9]+/y).map((second) => [first, second])));
-
-console.log(pair.parse(new Source("12,345", 0)))
+let result = parser.parseStringToCompletion(`function main() {
+    assert(4 == 2 + 2);
+}`) as ast.Block
+result.statements[0].emit()

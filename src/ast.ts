@@ -14,7 +14,7 @@ export class Number implements AST {
     }
 
     emit() {
-        throw Error("Not implemented yet")
+        emit(`  ldr r0, =${this.value}`)
     }
 }
 
@@ -40,7 +40,10 @@ export class Not implements AST {
     }
 
     emit() {
-        throw Error("Not implemented yet")
+        this.term.emit()
+        emit(`  cmp r0, #0`)
+        emit(`  moveq, r0, #1`)
+        emit(`  movne, r0, #0`)
     }
 }
 
@@ -53,7 +56,13 @@ export class Equal implements AST {
     }
 
     emit() {
-        throw Error("Not implemented yet")
+        this.left.emit()
+        emit(`  push {r0, ip}`)
+        this.right.emit()
+        emit(`  pop {r1, ip}`)
+        emit(`  cmp r0, r1`)
+        emit(`  moveq r0, #1`)
+        emit(`  movne r0, #0`)
     }
 }
 
@@ -66,7 +75,13 @@ export class NotEqual implements AST {
     }
 
     emit() {
-        throw Error("Not implemented yet")
+        this.left.emit()
+        emit(`  push {r0, ip}`)
+        this.right.emit()
+        emit(`  pop {r1, ip}`)
+        emit(`  cmp r0, r1`)
+        emit(`  moveq r0, #0`)
+        emit(`  movne r0, #1`)
     }
 }
 
@@ -79,7 +94,11 @@ export class Add implements AST {
     }
 
     emit() {
-        throw Error("Not implemented yet")
+        this.left.emit()
+        emit(`  push {r0, ip}`)
+        this.right.emit()
+        emit(`  pop {r1, ip}`)
+        emit(`  add r0, r0, r1`)
     }
 }
 
@@ -92,7 +111,11 @@ export class Subtract implements AST {
     }
 
     emit() {
-        throw Error("Not implemented yet")
+        this.left.emit()
+        emit(`  push {r0, ip}`)
+        this.right.emit()
+        emit(`  pop {r1, ip}`)
+        emit(`  sub r0, r0, r1`)
     }
 }
 
@@ -105,7 +128,11 @@ export class Multiply implements AST {
     }
 
     emit() {
-        throw Error("Not implemented yet")
+        this.left.emit()
+        emit(`  push {r0, ip}`)
+        this.right.emit()
+        emit(`  pop {r1, ip}`)
+        emit(`  mul r0, r0, r1`)
     }
 }
 
@@ -118,7 +145,11 @@ export class Divide implements AST {
     }
 
     emit() {
-        throw Error("Not implemented yet")
+        this.left.emit()
+        emit(`  push {r0, ip}`)
+        this.right.emit()
+        emit(`  pop {r1, ip}`)
+        emit(`  udiv r0, r0, r1`)
     }
 }
 
@@ -230,7 +261,14 @@ export class While implements AST {
 export class Main implements AST {
     constructor(public statements: Array<AST>) {}
 
-    emit() {}
+    emit() {
+        emit(`.global main`)
+        emit(`main:`)
+        emit(`  push {fp, lr}`)
+        this.statements.forEach((statement) => statement.emit())
+        emit(`  mov r0, #0`)
+        emit(`  pop {fp, pc}`)
+    }
 
     equals(other: AST) {
         return other instanceof Main && other.statements.every((stmt, i) => stmt.equals(this.statements[i]))
@@ -240,7 +278,13 @@ export class Main implements AST {
 export class Assert implements AST {
     constructor(public condition: AST) {}
 
-    emit() {}
+    emit() {
+        this.condition.emit()
+        emit(`  cmp r0, #1`)
+        emit(`  moveq r0, #'.'`)
+        emit(`  movne r0, #'F'`)
+        emit(`  bl putchar`)
+    }
 
     equals(other: AST) {
         return other instanceof Assert && other.condition.equals(this.condition)

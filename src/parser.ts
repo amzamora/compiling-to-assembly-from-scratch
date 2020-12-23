@@ -155,7 +155,7 @@ export const args: Parser<Array<ast.AST>> =
 export const call: Parser<ast.AST> =
     ID.bind((callee) =>
         LEFT_PAREN.and(args.bind((args) =>
-            RIGHT_PAREN.and(
+            return RIGHT_PAREN.and(
                 constant(
                     callee === 'assert'
                     ? new ast.Assert(args[0])
@@ -182,13 +182,13 @@ export const infix = (operatorParser, termParser) =>
                         new operator(left, term), term)))
 
 // product <- unary ((STAR / SLASH) unary)*
-export const product: Parser<ast.AST> = infix(STAR.or(SLASH), unary)
+export const product = infix(STAR.or(SLASH), unary)
 
 // sum <- unary ((STAR / SLASH) product)*
-export const sum: Parser<ast.AST> = infix(STAR.or(SLASH), product)
+export const sum = infix(PLUS.or(MINUS), product)
 
 // comparison <- sum ((EQUAL / NOT_EQUAL) sum)*
-export const comparison = infix(EQUAL.or(NOT_EQUAL), sum)
+export const  comparison = infix(EQUAL.or(NOT_EQUAL), sum)
 
 // expression <- comparison
 expression.parse = comparison.parse
@@ -278,4 +278,5 @@ let statementParser: Parser<ast.AST> =
 statement.parse = statementParser.parse
 
 export const parser: Parser<ast.AST> =
-    ignored.and(zeroOrMore(statement)).map((statements) => new ast.Block(statements))
+    ignored.and(zeroOrMore(statement)).map((statements) =>
+        new ast.Block(statements))
