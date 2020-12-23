@@ -8,6 +8,8 @@ let {comparison} = Parser
 
 
 let result = parser.parseStringToCompletion(`function main() {
+    assert(1);
+    assert(!0);
     assert(4 == 2 + 2);
 }`) as ast.Block
 result.statements[0].emit()
